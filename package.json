@@ -1,0 +1,73 @@
+{
+  "name": "@jmjs/comp-template",
+  "version": "1.0.0",
+  "description": "A lightweight and customizable template generator for JavaScript/TypeScript projects. Create and manage reusable code templates with automatic variable substitution and intelligent naming conventions.",
+  "main": "dist/index.js",
+  "bin": {
+    "template": "./dist/cli.js",
+    "jmtp": "./dist/cli.js"
+  },
+  "files": [
+    "dist/*.js",
+    "!dist/*.test.js",
+    "templates/**/*",
+    "template.config.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build && npm test",
+    "publish:dry": "npm pack --dry-run",
+    "publish:beta": "npm publish --tag beta",
+    "publish:latest": "npm publish",
+    "test": "npm run build && node --test dist/*.test.js",
+    "test:cli": "npm run build && node --test dist/cli.test.js",
+    "test:watch": "node --test --watch src/*.test.ts --loader=ts-node/esm",
+    "coverage": "npm run build && c8 node --test dist/*.test.js",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts",
+    "link:test": "./scripts/link-and-install.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmjsdev/comp-template.git"
+  },
+  "keywords": [
+    "template",
+    "generator",
+    "cli",
+    "javascript",
+    "typescript",
+    "react",
+    "angular",
+    "code-generator",
+    "boilerplate"
+  ],
+  "author": "JMJS Dev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jmjsdev/comp-template/issues"
+  },
+  "homepage": "https://github.com/jmjsdev/comp-template#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^18.19.87",
+    "c8": "^10.1.2",
+    "fs-monkey": "^1.0.6",
+    "memfs": "^4.17.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "inquirer": "^8.2.6"
+  }
+}

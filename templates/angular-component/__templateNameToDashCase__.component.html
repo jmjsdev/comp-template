@@ -1,0 +1,12 @@
+<div class="__templateNameToDashCase__">
+  <h3>{{ title }}</h3>
+
+  <div class="content" *ngIf="data; else noData">
+    <p>{{ data }}</p>
+    <button (click)="handleClick()">Click me</button>
+  </div>
+
+  <ng-template #noData>
+    <p class="no-data">No data available</p>
+  </ng-template>
+</div>
