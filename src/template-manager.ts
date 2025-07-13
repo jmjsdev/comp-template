@@ -1,5 +1,5 @@
 import path from "path";
-import { Template, TemplateVariables } from "./types";
+import { Template, TemplateVariables, TemplateConfig } from "./types";
 import { generateTemplateVariables, replaceTemplateVariables } from "./utils";
 import { FileUtils, readdir, stat, readFile, writeFile } from "./file-utils";
 import { Validators } from "./validators";
@@ -17,13 +17,16 @@ export class TemplateManager {
   private templatesDir: string;
   private generatedFiles: GenerationResult[] = [];
   private progress: ProgressIndicator | null = null;
+  private config: TemplateConfig | null = null;
 
   /**
    * Create a new TemplateManager instance
    * @param templatesDir - Directory containing templates (default: ".template")
+   * @param config - Template configuration (optional)
    */
-  constructor(templatesDir: string = ".template") {
+  constructor(templatesDir: string = ".template", config?: TemplateConfig) {
     this.templatesDir = templatesDir;
+    this.config = config || null;
   }
 
   /**
@@ -99,8 +102,16 @@ export class TemplateManager {
 
     const stats = await stat(templatePath);
     if (stats.isDirectory()) {
-      // Pour les templates de type directory, créer un dossier avec le nom du composant
-      const componentDir = path.join(targetDir, variables.templateNameToPascalCase);
+      // Pour les templates de type directory, utiliser transformName si disponible
+      let directoryName: string;
+      if (this.config?.transformName) {
+        directoryName = this.config.transformName(targetName, variables);
+      } else {
+        // Fallback: utiliser PascalCase par défaut
+        directoryName = variables.templateNameToPascalCase;
+      }
+      
+      const componentDir = path.join(targetDir, directoryName);
       if (!options.dryRun) {
         await FileUtils.ensureDir(componentDir);
       }

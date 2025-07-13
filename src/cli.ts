@@ -2,7 +2,7 @@
 
 import inquirer from "inquirer";
 import { TemplateManager } from "./template-manager";
-import { FileUtils } from "./file-utils";
+import { FileUtils, readFile } from "./file-utils";
 import { installTemplates } from "./install";
 import { ConfigManager } from "./config-manager";
 import { Validators } from "./validators";
@@ -11,7 +11,7 @@ import { TemplateValidator } from "./template-validator";
 import path from "path";
 
 /** Valid CLI command names */
-type CommandName = "init" | "generate" | "install" | "config" | "update" | "validate";
+type CommandName = "init" | "generate" | "install" | "config" | "update" | "validate" | "version";
 
 /** Application path constants */
 export const PATHS = {
@@ -126,7 +126,7 @@ export class CLIUtils {
    * @returns True if command is valid
    */
   static validateCommandName(command: string): command is CommandName {
-    return ["init", "generate", "install", "config", "update", "validate"].includes(command);
+    return ["init", "generate", "install", "config", "update", "validate", "version"].includes(command);
   }
 
   /**
@@ -140,6 +140,7 @@ export class CLIUtils {
     console.log("  config   - Create/update template.config.js");
     console.log("  update   - Update template configuration");
     console.log("  validate - Validate template syntax and structure");
+    console.log("  version  - Display the current version");
   }
 }
 
@@ -154,6 +155,22 @@ export class Commands {
     console.log(MESSAGES.CONFIG_MANAGING);
     const configManager = new ConfigManager();
     await configManager.createDefaultConfig();
+  }
+
+  /**
+   * Display the current version
+   */
+  static async version(): Promise<void> {
+    try {
+      // Read package.json from the package root directory
+      const packageJsonPath = path.join(__dirname, "../package.json");
+      const packageJsonContent = await readFile(packageJsonPath, "utf8");
+      const packageJson = JSON.parse(packageJsonContent);
+      
+      console.log(`@jmjs/comp-template v${packageJson.version}`);
+    } catch (error) {
+      console.error("⚠️  Could not read version from package.json");
+    }
   }
 
   /**
@@ -298,6 +315,10 @@ export class Commands {
    */
   private static async executeGeneration(templateManager: TemplateManager, configManager: ConfigManager, templates: Template[]): Promise<void> {
     const config = await configManager.loadConfig();
+    
+    // Créer un nouveau TemplateManager avec la configuration
+    const templatesDir = await CLIUtils.getTemplatesDirectory();
+    const configuredTemplateManager = new TemplateManager(templatesDir, config);
 
     const { templateName } = await inquirer.prompt([
       {
@@ -335,7 +356,7 @@ export class Commands {
     ]);
 
     await FileUtils.ensureDir(selectedDirectory);
-    await templateManager.generateFromTemplate(templateName, componentName, selectedDirectory, { dryRun });
+    await configuredTemplateManager.generateFromTemplate(templateName, componentName, selectedDirectory, { dryRun });
 
     if (dryRun) {
       const { proceed } = await inquirer.prompt([
@@ -348,7 +369,7 @@ export class Commands {
       ]);
 
       if (proceed) {
-        await templateManager.generateFromTemplate(templateName, componentName, selectedDirectory, { dryRun: false });
+        await configuredTemplateManager.generateFromTemplate(templateName, componentName, selectedDirectory, { dryRun: false });
         console.log(`${MESSAGES.SUCCESS_GENERATED} ${componentName} from template ${templateName} in ${selectedDirectory}`);
       } else {
         console.log("Generation cancelled.");
@@ -422,6 +443,7 @@ const commands: Record<CommandName, () => Promise<void>> = {
   init: Commands.init,
   generate: Commands.generate,
   validate: Commands.validate,
+  version: Commands.version,
 };
 
 /**

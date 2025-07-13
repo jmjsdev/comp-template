@@ -56,9 +56,33 @@ export class ConfigManager {
   private async generateConfigContent(config: TemplateConfig): Promise<string> {
     const isESM = await this.isESModule();
 
-    const configJson = JSON.stringify(config, null, 2);
+    // Extract transformName function if it exists
+    const { transformName, ...configWithoutFunction } = config;
+    const configJson = JSON.stringify(configWithoutFunction, null, 2);
 
-    return isESM ? `export default ${configJson};` : `module.exports = ${configJson};`;
+    // Default transformName function as string
+    const defaultTransformName = `function transformName(name, variables) {
+  // Default behavior: return PascalCase name for directory templates
+  // You can customize this function to change how directory names are generated
+  // Available variables: templateNameToPascalCase, templateNameToCamelCase, templateNameToDashCase, etc.
+  return variables.templateNameToPascalCase;
+}`;
+
+    if (isESM) {
+      return `${defaultTransformName}
+
+const config = ${configJson};
+config.transformName = transformName;
+
+export default config;`;
+    } else {
+      return `${defaultTransformName}
+
+const config = ${configJson};
+config.transformName = transformName;
+
+module.exports = config;`;
+    }
   }
 
   /**
@@ -122,34 +146,96 @@ export class ConfigManager {
     const isConfigCJS = configContent.includes('module.exports') || configContent.includes('exports.');
     
     if (isConfigESM) {
-      // For ES module format config files
-      const configModule = await import(`file://${absolutePath}?t=${Date.now()}`);
-      return configModule.default || configModule;
+      // For ES module format config files, we need to use a workaround
+      // since direct import() might not work for .js files in CommonJS environment
+      return this.loadESModuleConfig(configContent, absolutePath);
     } else if (isConfigCJS) {
       // For CommonJS format config files
-      const module = { exports: {} };
-      const exports = module.exports;
-      
-      // Create a function to evaluate the CommonJS module
-      const evalFunc = new Function('module', 'exports', '__dirname', '__filename', configContent);
-      evalFunc(module, exports, path.dirname(absolutePath), absolutePath);
-      
-      return module.exports as TemplateConfig;
+      return this.loadCommonJSConfig(configContent, absolutePath);
     } else {
       // Fallback: try both methods
       try {
         // Try ES module first
-        const configModule = await import(`file://${absolutePath}?t=${Date.now()}`);
-        return configModule.default || configModule;
+        return this.loadESModuleConfig(configContent, absolutePath);
       } catch {
         // Fallback to CommonJS evaluation
-        const module = { exports: {} };
-        const exports = module.exports;
-        const evalFunc = new Function('module', 'exports', '__dirname', '__filename', configContent);
-        evalFunc(module, exports, path.dirname(absolutePath), absolutePath);
-        return module.exports as TemplateConfig;
+        return this.loadCommonJSConfig(configContent, absolutePath);
       }
     }
+  }
+
+  /**
+   * Load ES module format configuration
+   * @param configContent - File content
+   * @param absolutePath - Absolute path to config file
+   * @private
+   */
+  private async loadESModuleConfig(configContent: string, absolutePath: string): Promise<TemplateConfig> {
+    try {
+      // First try direct import for proper ES modules
+      const configModule = await import(`file://${absolutePath}?t=${Date.now()}`);
+      return configModule.default || configModule;
+    } catch (importError) {
+      // If direct import fails, try to evaluate the ES module manually
+      // This is necessary when the file uses ES syntax but isn't properly configured as ESM
+      try {
+        // Create a temporary module with ES module simulation
+        const moduleContext = {
+          exports: {},
+          module: { exports: {} },
+          __dirname: path.dirname(absolutePath),
+          __filename: absolutePath,
+          require: require,
+          console: console
+        };
+
+        // Transform export default syntax to make it work in CommonJS context
+        let transformedContent = configContent;
+        
+        // Handle "export default" by converting it to module.exports
+        if (transformedContent.includes('export default')) {
+          transformedContent = transformedContent.replace(
+            /export\s+default\s+/g, 
+            'module.exports = '
+          );
+        }
+        
+        // Create and execute the function
+        const evalFunc = new Function(
+          'module', 'exports', '__dirname', '__filename', 'require', 'console',
+          transformedContent
+        );
+        evalFunc(
+          moduleContext.module, 
+          moduleContext.exports, 
+          moduleContext.__dirname, 
+          moduleContext.__filename,
+          moduleContext.require,
+          moduleContext.console
+        );
+        
+        return moduleContext.module.exports as TemplateConfig;
+      } catch (evalError) {
+        throw new Error(`Failed to load ES module config: ${evalError instanceof Error ? evalError.message : 'Unknown error'}`);
+      }
+    }
+  }
+
+  /**
+   * Load CommonJS format configuration
+   * @param configContent - File content
+   * @param absolutePath - Absolute path to config file
+   * @private
+   */
+  private loadCommonJSConfig(configContent: string, absolutePath: string): TemplateConfig {
+    const module = { exports: {} };
+    const exports = module.exports;
+    
+    // Create a function to evaluate the CommonJS module
+    const evalFunc = new Function('module', 'exports', '__dirname', '__filename', 'require', 'console', configContent);
+    evalFunc(module, exports, path.dirname(absolutePath), absolutePath, require, console);
+    
+    return module.exports as TemplateConfig;
   }
 
   /**

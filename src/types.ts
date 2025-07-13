@@ -50,4 +50,6 @@ export interface OutputDirectory {
 export interface TemplateConfig {
   /** List of available output directories for template generation */
   outputDirectories: OutputDirectory[];
+  /** Function to transform the input name for directory templates (optional) */
+  transformName?: (name: string, variables: TemplateVariables) => string;
 }
