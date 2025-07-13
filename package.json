@@ -1,6 +1,6 @@
 {
   "name": "@jmjs/comp-template",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A lightweight and customizable template generator for JavaScript/TypeScript projects. Create and manage reusable code templates with automatic variable substitution and intelligent naming conventions.",
   "main": "dist/index.js",
   "bin": {
