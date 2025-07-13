@@ -134,8 +134,56 @@ templates/
 
 ## Release Process
 
-1. Update version in `package.json`
-2. Run tests and build: `npm test && npm run build`
-3. Test with `npm pack`
-4. Tag release: `git tag v0.0.x`
-5. Push and publish: `git push --tags && npm publish` 
+### Version Management
+Use `npm version` to automatically update version numbers and create git tags:
+
+```bash
+# Patch version (bug fixes): 1.0.0 → 1.0.1
+npm version patch
+
+# Minor version (new features): 1.0.0 → 1.1.0
+npm version minor
+
+# Major version (breaking changes): 1.0.0 → 2.0.0
+npm version major
+```
+
+### Complete Release Workflow
+
+1. **Ensure clean state**:
+   ```bash
+   git status  # Should be clean
+   git pull    # Get latest changes
+   ```
+
+2. **Run quality checks**:
+   ```bash
+   npm test && npm run build
+   ```
+
+3. **Test locally**:
+   ```bash
+   npm pack
+   # Test the packed version in a separate project
+   ```
+
+4. **Update version and tag**:
+   ```bash
+   # Choose appropriate version bump
+   npm version patch   # or minor/major
+   ```
+   This automatically:
+   - Updates `package.json` version
+   - Creates a git commit with the new version
+   - Creates a git tag (e.g., `v1.0.1`)
+
+5. **Push and publish**:
+   ```bash
+   git push --follow-tags  # Push commits and tags
+   npm publish            # Publish to npm registry
+   ```
+
+### Version Guidelines
+- **Patch** (1.0.0 → 1.0.1): Bug fixes, documentation updates
+- **Minor** (1.0.0 → 1.1.0): New features, backwards compatible
+- **Major** (1.0.0 → 2.0.0): Breaking changes, API changes 
