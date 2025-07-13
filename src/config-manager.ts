@@ -115,24 +115,40 @@ export class ConfigManager {
    */
   private async loadConfigFile(): Promise<TemplateConfig> {
     const absolutePath = path.resolve(this.configFile);
-    const isESM = await this.isESModule();
-
-    if (isESM) {
-      // For ES modules, use dynamic import with file:// protocol
-      const configModule = await import(`file://${absolutePath}`);
+    const configContent = await readFile(absolutePath, 'utf8');
+    
+    // Try to detect the format of the config file itself
+    const isConfigESM = configContent.includes('export default') || configContent.includes('export {');
+    const isConfigCJS = configContent.includes('module.exports') || configContent.includes('exports.');
+    
+    if (isConfigESM) {
+      // For ES module format config files
+      const configModule = await import(`file://${absolutePath}?t=${Date.now()}`);
       return configModule.default || configModule;
-    } else {
-      // For CommonJS, clear cache and use dynamic import to avoid require
-      // This makes the code more consistent and avoids mixing module systems
+    } else if (isConfigCJS) {
+      // For CommonJS format config files
       const module = { exports: {} };
       const exports = module.exports;
-      const configContent = await readFile(absolutePath, 'utf8');
       
       // Create a function to evaluate the CommonJS module
       const evalFunc = new Function('module', 'exports', '__dirname', '__filename', configContent);
       evalFunc(module, exports, path.dirname(absolutePath), absolutePath);
       
       return module.exports as TemplateConfig;
+    } else {
+      // Fallback: try both methods
+      try {
+        // Try ES module first
+        const configModule = await import(`file://${absolutePath}?t=${Date.now()}`);
+        return configModule.default || configModule;
+      } catch {
+        // Fallback to CommonJS evaluation
+        const module = { exports: {} };
+        const exports = module.exports;
+        const evalFunc = new Function('module', 'exports', '__dirname', '__filename', configContent);
+        evalFunc(module, exports, path.dirname(absolutePath), absolutePath);
+        return module.exports as TemplateConfig;
+      }
     }
   }
 
