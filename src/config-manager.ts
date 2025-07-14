@@ -62,10 +62,14 @@ export class ConfigManager {
 
     // Default transformName function as string
     const defaultTransformName = `function transformName(name, variables) {
-  // Default behavior: return PascalCase name for directory templates
+  // Default behavior: preserve the input name as-is for directory templates
   // You can customize this function to change how directory names are generated
   // Available variables: templateNameToPascalCase, templateNameToCamelCase, templateNameToDashCase, etc.
-  return variables.templateNameToPascalCase;
+  // Examples:
+  //   return variables.templateNameToPascalCase;  // "my-comp" -> "MyComp"
+  //   return variables.templateNameToCamelCase;   // "my-comp" -> "myComp"
+  //   return variables.templateNameToDashCase;    // "my comp" -> "my-comp"
+  return name;
 }`;
 
     if (isESM) {
