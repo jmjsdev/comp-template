@@ -60,8 +60,37 @@ The project maintains high test coverage standards:
 - **LCOV format**: For CI/CD integration and external tools
 
 ### Local Testing
-The recommended way to test the CLI locally:
 
+#### Automated Testing (Recommended)
+The easiest way to test the CLI locally with an automated script:
+
+```bash
+# Run automated CLI test
+npm run test:local
+
+# This will:
+# - Build the project
+# - Create a tarball
+# - Set up test-project/ directory
+# - Install the local package
+# - Run CLI commands and verify output
+# - Report success/failure
+
+# Clean up test project
+npm run test:local:clean
+```
+
+The `test-project/` directory is created locally and ignored by git. You can manually explore it:
+
+```bash
+cd test-project
+npx template          # Test template generation
+ls -la .template      # View installed templates
+```
+
+#### Manual Testing (Alternative Methods)
+
+**Method 1: Using npm pack**
 ```bash
 # 1. Build and pack
 npm run build
@@ -77,6 +106,19 @@ npm install ../jmjs-comp-template-*.tgz
 # 4. Test commands
 npx template init
 npx template generate
+```
+
+**Method 2: Using npm link**
+```bash
+# Use the automated link script
+npm run link:test [target-directory]
+
+# Or manually:
+npm run build
+npm link
+cd /path/to/test/project
+npm link @jmjs/comp-template
+npx template init
 ```
 
 ## Development Workflow

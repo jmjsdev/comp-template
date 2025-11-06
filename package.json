@@ -24,6 +24,8 @@
     "test": "npm run build && node --test dist/*.test.js",
     "test:cli": "npm run build && node --test dist/cli.test.js",
     "test:watch": "node --test --watch src/*.test.ts --loader=ts-node/esm",
+    "test:local": "./scripts/test-cli-local.sh",
+    "test:local:clean": "rm -rf test-project",
     "coverage": "npm run build && c8 node --test dist/*.test.js",
     "start": "node dist/cli.js",
     "dev": "ts-node src/cli.ts",

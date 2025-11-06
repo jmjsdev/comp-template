@@ -142,3 +142,6 @@ dist
 coverage/
 .nyc_output
 *.lcov
+
+# Local test directory for CLI testing
+test-project/
